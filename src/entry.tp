@@ -1,0 +1,254 @@
+{
+  "sdk": 6,
+  "version": 100,
+  "name": "LinuxMediaMixer",
+  "id": "gitago.mediaMixer",
+  "configuration": {
+    "colorDark": "#222423",
+    "colorLight": "#43a047"
+  },
+  "plugin_start_cmd_linux": "\"sh %TP_PLUGIN_FOLDER%LinuxMediaMixer\\LinuxMediaMixer_Plugin\"",
+  "categories": [
+    {
+      "id": "gitago.mediaMixer.main",
+      "name": "MediaMixer Main Category",
+      "imagepath": "%TP_PLUGIN_FOLDER%Kofi\\LinuxMediaMixer_Logo_26px.png",
+      "actions": [
+        {
+          "id": "gitago.mediaMixer.act.Mute/Unmute",
+          "name": "Volume Mixer: Mute/Unmute process volume",
+          "prefix": "MediaMixer Main Category",
+          "type": "communicate",
+          "description": "Mute/Unmute process volume",
+          "format": "{$gitago.mediaMixer.act.Mute/Unmute.data.process$} {$gitago.mediaMixer.act.Mute/Unmute.data.choice$} app",
+          "tryInline": true,
+          "data": [
+            {
+              "id": "gitago.mediaMixer.act.Mute/Unmute.data.process",
+              "type": "choice",
+              "label": "process list",
+              "default": "",
+              "valueChoices": []
+            },
+            {
+              "id": "gitago.mediaMixer.act.Mute/Unmute.data.choice",
+              "type": "choice",
+              "label": "Option choice",
+              "default": "Toggle",
+              "valueChoices": [
+                "Mute",
+                "Unmute",
+                "Toggle"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gitago.mediaMixer.act.Inc/DecrVol",
+          "name": "Adjust App Volume",
+          "prefix": "MediaMixer Main Category",
+          "type": "communicate",
+          "format": "{$gitago.mediaMixer.act.Inc/DecrVol.data.choice$} {$gitago.mediaMixer.act.Inc/DecrVol.data.process$} volume{$gitago.mediaMixer.act.Inc/DecrVol.data.Volume$}",
+          "tryInline": true,
+          "hasHoldFunctionality": true,
+          "data": [
+            {
+              "id": "gitago.mediaMixer.act.Inc/DecrVol.data.process",
+              "type": "choice",
+              "label": "process list",
+              "default": "",
+              "valueChoices": []
+            },
+            {
+              "id": "gitago.mediaMixer.act.Inc/DecrVol.data.choice",
+              "type": "choice",
+              "label": "Option choice",
+              "default": "Increase",
+              "valueChoices": [
+                "Increase",
+                "Decrease",
+                "Set"
+              ]
+            },
+            {
+              "id": "gitago.mediaMixer.act.Inc/DecrVol.data.Volume",
+              "type": "text",
+              "label": "Volume",
+              "default": "10"
+            }
+          ]
+        },
+        {
+          "id": "gitago.mediaMixer.act.changeDeviceVolume",
+          "name": "Set Device Volume",
+          "prefix": "MediaMixer Main Category",
+          "type": "communicate",
+          "format": "{$gitago.mediaMixer.act.changeDeviceVolume.choice$} Volume{$gitago.mediaMixer.act.changeDeviceVolume.deviceType$} to{$gitago.mediaMixer.act.changeDeviceVolume.Volume$}%",
+          "tryInline": true,
+          "hasHoldFunctionality": true,
+          "data": [
+            {
+              "id": "gitago.mediaMixer.act.changeDeviceVolume.deviceType",
+              "type": "choice",
+              "label": "device type",
+              "default": "Pick One",
+              "valueChoices": [
+                "Output",
+                "Input"
+              ]
+            },
+            {
+              "id": "gitago.mediaMixer.act.changeDeviceVolume.choice",
+              "type": "choice",
+              "label": "Device choice list",
+              "default": "Pick One",
+              "valueChoices": [
+                "Set",
+                "Increase",
+                "Decrease"
+              ]
+            },
+            {
+              "id": "gitago.mediaMixer.act.changeDeviceVolume.Volume",
+              "type": "text",
+              "label": "Volume",
+              "default": "25"
+            }
+          ]
+        },
+        {
+          "id": "gitago.mediaMixer.act.changeDeviceMute",
+          "name": "Mute/Unmute Device",
+          "prefix": "MediaMixer Main Category",
+          "type": "communicate",
+          "format": "{$gitago.mediaMixer.act.changeDeviceMute.choice$} {$gitago.mediaMixer.act.changeDeviceMute.deviceType$}Device",
+          "tryInline": true,
+          "data": [
+            {
+              "id": "gitago.mediaMixer.act.changeDeviceMute.deviceType",
+              "type": "choice",
+              "label": "device type",
+              "default": "Pick One",
+              "valueChoices": [
+                "Output",
+                "Input"
+              ]
+            },
+            {
+              "id": "gitago.mediaMixer.act.changeDeviceMute.devices",
+              "type": "choice",
+              "label": "Device choice list",
+              "default": "",
+              "valueChoices": []
+            },
+            {
+              "id": "gitago.mediaMixer.act.changeDeviceMute.choice",
+              "type": "choice",
+              "label": "Option choice",
+              "default": "Toggle",
+              "valueChoices": [
+                "Mute",
+                "Unmute",
+                "Toggle"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gitago.mediaMixer.act.ChangeAudioOutput",
+          "name": "Audio Output/Input Device Switcher",
+          "prefix": "MediaMixer Main Category",
+          "type": "communicate",
+          "format": "Change audio device{$gitago.mediaMixer.act.ChangeAudioOutput.choice$}{$gitago.mediaMixer.act.ChangeAudioOutput.data.device$}{$gitago.mediaMixer.act.ChangeAudioOutput.setType$}",
+          "tryInline": true,
+          "data": [
+            {
+              "id": "gitago.mediaMixer.act.ChangeAudioOutput.choice",
+              "type": "choice",
+              "label": "process list",
+              "default": "Pick One",
+              "valueChoices": [
+                "Output",
+                "Input"
+              ]
+            },
+            {
+              "id": "gitago.mediaMixer.act.ChangeAudioOutput.data.device",
+              "type": "choice",
+              "label": "Device choice list",
+              "default": "",
+              "valueChoices": []
+            },
+            {
+              "id": "gitago.mediaMixer.act.ChangeAudioOutput.setType",
+              "type": "choice",
+              "label": "Set audio device type",
+              "default": "Default",
+              "valueChoices": [
+                "Default",
+                "Communications"
+              ]
+            }
+          ]
+        }
+      ],
+      "states": [],
+      "events": [
+        {
+          "id": "gitago.mediaMixer.event.newDonation",
+          "name": "Kofi | New Donation",
+          "format": "When receiving a new donation $val",
+          "type": "communicate",
+          "valueChoices": [
+            "True"
+          ],
+          "valueType": "choice",
+          "valueStateId": "gitago.mediaMixer.state.newDonation"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "gitago.mediaMixer.connector.APPcontrol",
+          "name": "Volume Mixer: APP Volume slider",
+          "format": "Control volume for {$gitago.mediaMixer.connector.APPcontrol.data.slidercontrol$}",
+          "data": [
+            {
+              "id": "gitago.mediaMixer.connector.APPcontrol.data.slidercontrol",
+              "type": "choice",
+              "label": "APP choice list for APP control slider",
+              "default": "",
+              "valueChoices": []
+            }
+          ]
+        },
+        {
+          "id": "gitago.mediaMixer.connector.WinAudio",
+          "name": "Volume Mixer: Linux Volume Slider",
+          "format": "Control Default Audio for {$gitago.mediaMixer.connector.WinAudio.deviceType$} device",
+          "data": [
+            {
+              "id": "gitago.mediaMixer.connector.WinAudio.deviceType",
+              "type": "choice",
+              "label": "device type",
+              "default": "Pick One",
+              "valueChoices": [
+                "Output",
+                "Input"
+              ]
+            },
+            {
+              "id": "gitago.mediaMixer.connector.WinAudio.devices",
+              "type": "choice",
+              "label": "Device choice list",
+              "default": "default",
+              "valueChoices": [
+                "default"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "settings": []
+}
