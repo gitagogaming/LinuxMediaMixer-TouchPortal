@@ -14,7 +14,7 @@ TP_PLUGIN_INFO = {
     'version': __version__,
     "name": PLUGIN_NAME,
     "id": PLUGIN_ID,
-        "plugin_start_cmd_linux": f"\"sh %TP_PLUGIN_FOLDER%{PLUGIN_NAME}//start.sh {PLUGIN_NAME}_Plugin\"",
+        "plugin_start_cmd_linux": f"sh %TP_PLUGIN_FOLDER%{PLUGIN_NAME}/start.sh {PLUGIN_NAME}_Plugin",
     "configuration": {
         "colorDark": "#222423",
         "colorLight": "#43a047"
