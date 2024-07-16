@@ -7,7 +7,7 @@
     "colorDark": "#222423",
     "colorLight": "#43a047"
   },
-  "plugin_start_cmd_linux": "\"sh %TP_PLUGIN_FOLDER%LinuxMediaMixer\\LinuxMediaMixer_Plugin\"",
+  "plugin_start_cmd_linux": "sh %TP_PLUGIN_FOLDER%LinuxMediaMixer//start.sh LinuxMediaMixer_Plugin",
   "categories": [
     {
       "id": "gitago.mediaMixer.main",
@@ -83,7 +83,7 @@
           "name": "Set Device Volume",
           "prefix": "MediaMixer Main Category",
           "type": "communicate",
-          "format": "{$gitago.mediaMixer.act.changeDeviceVolume.choice$} Volume{$gitago.mediaMixer.act.changeDeviceVolume.deviceType$} to{$gitago.mediaMixer.act.changeDeviceVolume.Volume$}%",
+          "format": "{$gitago.mediaMixer.act.changeDeviceVolume.choice$} {$gitago.mediaMixer.act.changeDeviceVolume.deviceType$}volume to{$gitago.mediaMixer.act.changeDeviceVolume.Volume$}%",
           "tryInline": true,
           "hasHoldFunctionality": true,
           "data": [

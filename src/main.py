@@ -26,22 +26,7 @@ import asyncio
 ## 
 
 
-##############################
-### need to add action to edit default audio.. or finish it.. so to edit output/input.. 
-###  see if we can edit inputs/outputs that are not set to default.. link on windows
-#####
-### make action for changing default input/output sources
-#####
-### DONE test and fix on hold action data
-#####
-###  run down list of win media mixer and see whats missing...
-####
-### clean up code.. duh
-
-
-
 # loop = asyncio.new_event_loop()
-
 
 def handleSettings(settings, on_connect=False):
     settings = { list(settings[i])[0] : list(settings[i].values())[0] for i in range(len(settings)) }
@@ -116,7 +101,7 @@ def onConnect(data):
     monitor.start() ## Listening for current active window ot change..
     
     apps = controller.get_app_list()
-    g_log.debug(f"on Connect Apps{apps.keys()}")
+    # g_log.debug(f"on Connect Apps{apps.keys()}")
 
     TPClient.choiceUpdate(PLUGIN_ID + ".act.Mute/Unmute.data.process", list(apps.keys()))
     TPClient.choiceUpdate(PLUGIN_ID + ".act.Inc/DecrVol.data.process", list(apps.keys()))

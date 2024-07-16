@@ -4,7 +4,7 @@ PLUGIN_ICON = "LinuxMediaMixer_logo_26px.png"
 PLUGIN_FOLDER = "LinuxMediaMixer"
 
 GITHUB_USER_NAME = "GitagoGaming"
-GITHUB_PLUGIN_NAME = "Kofi-TouchPortal-Plugin"
+GITHUB_PLUGIN_NAME = "LinuxMediaMixer-TouchPortal-Plugin"  ## Name of Github Repo
 PLUGIN_RELEASE_INFO = {} # This will be updated by the update_check.py script
 
 __version__ = 100
@@ -14,7 +14,7 @@ TP_PLUGIN_INFO = {
     'version': __version__,
     "name": PLUGIN_NAME,
     "id": PLUGIN_ID,
-    "plugin_start_cmd_linux": f"\"sh %TP_PLUGIN_FOLDER%{PLUGIN_NAME}\\{PLUGIN_NAME}_Plugin\"",
+        "plugin_start_cmd_linux": f"\"sh %TP_PLUGIN_FOLDER%{PLUGIN_NAME}//start.sh {PLUGIN_NAME}_Plugin\"",
     "configuration": {
         "colorDark": "#222423",
         "colorLight": "#43a047"
@@ -35,7 +35,7 @@ TP_PLUGIN_CATEGORIES = {
     "main": {
         "id": PLUGIN_ID + ".main",
         "name": "MediaMixer Main Category",
-        "imagepath": f"%TP_PLUGIN_FOLDER%Kofi\\{PLUGIN_NAME}_Logo_26px.png"
+        "imagepath": f"%TP_PLUGIN_FOLDER%{PLUGIN_NAME}\\{PLUGIN_NAME}_Logo_26px.png"
     }
 }
 

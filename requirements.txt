@@ -11,3 +11,4 @@ six==1.16.0
 touchportal-api==1.7.10
 typing_extensions==4.12.2
 urllib3==2.2.2
+pulsectl-asyncio==1.2.0

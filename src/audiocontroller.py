@@ -69,6 +69,17 @@ class AudioController(object):
         except Exception as e:
             g_log.error(f"Operation failed: {e}")
 
+    async def initialize_pulse(self):
+        try:
+            self.pulse = pulsectl_asyncio.PulseAsync('volume-manager')
+            await self.pulse.connect()
+            await self.get_devices()
+            await self.get_app_inputs()
+        except Exception as e:
+            g_log.error(f"Unexpected error during PulseAudio initialization: {e}")
+            
+          
+            
     def get_app_list(self):
         """ We could make this fetch new apps instead of relying on the stored ones ?"""
         return self.apps
@@ -84,15 +95,6 @@ class AudioController(object):
                 ])
         del self.apps[app_name]
         # self.updateVolumeMixerChoicelist() # Update with new changes
-
-    async def initialize_pulse(self):
-        try:
-            self.pulse = pulsectl_asyncio.PulseAsync('volume-manager')
-            await self.pulse.connect()
-            await self.get_devices()
-            await self.get_app_inputs()
-        except Exception as e:
-            g_log.error(f"Unexpected error during PulseAudio initialization: {e}")
 
     async def get_devices(self):
         if not self.pulse:
@@ -120,7 +122,7 @@ class AudioController(object):
         ## sink_list, source_list and card_list dont seem to show anything to properly identify it for us.. although it should be there somewhere..
         # this command below allows to set the default device to the hdmi output - but not sure how to get that set up here or how to find it technically
         # pacmd set-card-profile alsa_card.pci-0000_00_1b.0 output:hdmi-stereo
-        ## This one allows testing of audio over that hdmi channel
+        ## This one allows testing of audio over that hdmi channel   - https://bbs.archlinux.org/viewtopic.php?id=245761
         # speaker-test -D hdmi:0 -c 2
 
         # for card in await self.pulse.card_list():
