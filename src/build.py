@@ -4,7 +4,9 @@ from TPPEntry import PLUGIN_NAME, PLUGIN_FOLDER, PLUGIN_ICON, __version__
 
 
 
-PLUGIN_MAIN = f"{PLUGIN_NAME}.py"
+#PLUGIN_MAIN = f"{PLUGIN_NAME}.py"
+PLUGIN_MAIN = "main.py"
+
 
 
 PLUGIN_EXE_NAME = f"{PLUGIN_NAME}_Plugin"
