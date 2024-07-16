@@ -7,7 +7,7 @@ GITHUB_USER_NAME = "GitagoGaming"
 GITHUB_PLUGIN_NAME = "LinuxMediaMixer-TouchPortal-Plugin"  ## Name of Github Repo
 PLUGIN_RELEASE_INFO = {} # This will be updated by the update_check.py script
 
-__version__ = 100
+__version__ = 101
 
 TP_PLUGIN_INFO = {
     "sdk": 6,
@@ -22,13 +22,13 @@ TP_PLUGIN_INFO = {
 }
 
 TP_PLUGIN_SETTINGS = {
-    # 'Ngrok Port': {
-    #     'name': "Ngrok Port",
-    #     'type': "text",
-    #     'default': "5000",
-    #     'readOnly': False,
-    #     'value': None  
-    # }
+    'BrowserApps': {
+        'name': "Browser Apps",
+        'type': "text",
+        'default': "brave, firefox, chrome",
+        'readOnly': False,
+        'value': None  
+    }
  }
 
 TP_PLUGIN_CATEGORIES = {
@@ -241,6 +241,13 @@ TP_PLUGIN_STATES = {
     #     "default": "",
     #     "category": "shop"
     # }
+    'FocusedAPP': {
+        'category': "main",
+        'id': PLUGIN_ID + ".state.currentFocusedAPP",
+        'type': "text",
+        'desc': "Volume Mixer: current focused app",
+        'default': ""
+    },
 }
 
 

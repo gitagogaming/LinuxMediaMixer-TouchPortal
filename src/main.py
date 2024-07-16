@@ -32,8 +32,10 @@ def handleSettings(settings, on_connect=False):
     settings = { list(settings[i])[0] : list(settings[i].values())[0] for i in range(len(settings)) }
     g_log.info(f"Settings: {settings}")
 
-    if (value := settings.get("Ngrok Server Address")) is not None:
-        TP_PLUGIN_SETTINGS['Ngrok Server Address']['value'] = value
+    if (value := settings.get("Browser Apps")) is not None:
+        TP_PLUGIN_SETTINGS['BrowserApps']['value'] = value
+        print()
+        controller.browserApps = [app.strip() for app in value.split(',')]
 
 
 
@@ -316,6 +318,9 @@ def onListChange(data):
 @TPClient.on(TP.TYPES.onShutdown)
 def onShutdown(data:dict):
     g_log.info('Received shutdown event from TP Client.')
+    controller.stop()
+    monitor.stop()
+    TPClient.disconnect()
 
 
 

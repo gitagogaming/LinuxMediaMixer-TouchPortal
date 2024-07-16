@@ -1,8 +1,9 @@
 from ewmh import EWMH
 import threading
 from Xlib import display, X
+from TPPEntry import PLUGIN_ID
 
-from tpClient import g_log
+from tpClient import g_log, TPClient
 
 
 class WindowMonitor:
@@ -51,8 +52,11 @@ class WindowMonitor:
                     current_window_info = self.get_active_window_info()
                     if current_window_info and current_window_info != last_window_info:
                         self.currentWindow = current_window_info
-                        g_log.debug(f"Focus changed to: {self.currentWindow['app_name']} - {self.currentWindow['window_name']}")
                         last_window_info = current_window_info
+                        
+                        g_log.debug(f"Focus changed to: {self.currentWindow['app_name']} - {self.currentWindow['window_name']}")
+                        TPClient.stateUpdate(PLUGIN_ID + ".state.currentFocusedAPP", self.currentWindow['app_name'] )
+
 
     def start(self):
         self.focus_thread = threading.Thread(target=self.window_focus_thread, daemon=True)

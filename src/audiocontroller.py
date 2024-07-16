@@ -18,6 +18,8 @@ class AudioController(object):
         self.input_devices = {}
         self.cards = {}
         self.apps = {}
+
+        self.browserApps = []
         
     def _run_event_loop(self):
         self.loop = asyncio.new_event_loop()
@@ -255,42 +257,160 @@ class AudioController(object):
         if not self.pulse or not self.pulse.connected:
             g_log.info("PulseAudio connection not available...")
             return
-        
-        app_info = self.apps.get(app_name.lower())
-
-        if not app_info:
-            g_log.info(f"Application '{app_name}' not found.")
-            return
-
-        if hasattr(app_info['info'], 'volume'):
-            current_volume = app_info['info'].volume.values[0]
+        if app_name.lower() in self.browserApps:
+            await self._setBrowserVolume(app_name, volume, action)
         else:
-            g_log.info(f"No volume attribute found for '{app_name}'")
-            return
-        
-        if action == 'Increase':
-            volume = min(1.0, current_volume + volume)
-        elif action == 'Decrease':
-            volume = max(0.0, current_volume - volume)
-        elif action == 'Set':
-            volume = float(volume)
-        else:
-            g_log.info(f"Unknown volume action: {action}")
-            return
+            app_info = self.apps.get(app_name.lower())
 
-        # Ensure volume is within valid range
-        volume = max(0.0, min(1.0, volume))
-        g_log.info(f"Setting volume for {app_name} to {volume * 100}%")
+            if not app_info:
+                g_log.info(f"Application '{app_name}' not found.")
+                return
 
-        try:
-            await self.pulse.volume_set_all_chans(app_info['info'], volume)
-        except asyncio.exceptions.InvalidStateError as e:
-            g_log.error(f"Invalid state error: {e}")
-            g_log.error(f"App: {app_name}, Volume: {volume}, Action: {action} App info: {app_info}")
-        except Exception as e:
-            g_log.error(f"Unexpected error in _set_app_volume: {e}")
+            if hasattr(app_info['info'], 'volume'):
+                current_volume = app_info['info'].volume.values[0]
+            else:
+                g_log.info(f"No volume attribute found for '{app_name}'")
+                return
+
+            if action.lower() == 'increase':
+                volume = min(1.0, current_volume + volume)
+            elif action.lower() == 'decrease':
+                volume = max(0.0, current_volume - volume)
+            elif action.lower() == 'set':
+                volume = float(volume)
+            else:
+                g_log.info(f"Unknown volume action: {action}")
+                return
+
+            volume = max(0.0, min(1.0, volume))
+            g_log.info(f"Setting volume for {app_name} to {volume * 100}%")
+
+            try:
+                await self.pulse.volume_set_all_chans(app_info['info'], volume)
+            except asyncio.exceptions.InvalidStateError as e:
+                g_log.error(f"Invalid state error: {e}")
+            except Exception as e:
+                g_log.error(f"Unexpected error in _set_app_volume: {e}")
 
         g_log.info(f"Volume for {app_name} {action} to {volume * 100}%")
+    async def _setBrowserVolume(self, app_name, volume, action):
+        """
+        Adjusts volume for all sink inputs of a browser.
+        - If one audio source is different volume level we make sure they are identical upon changing
+        """
+        try:
+            sink_inputs = await self.pulse.sink_input_list()
+            app_sink_inputs = [
+                si for si in sink_inputs if app_name.lower() in si.proplist.get('application.name', '').lower()
+            ]
+            if not app_sink_inputs:
+                g_log.info(f"No {app_name.capitalize()} browser audio streams found.")
+                return
+
+            # Find the minimum current volume among all sink inputs
+            min_volume = min(si.volume.values[0] for si in app_sink_inputs)
+
+            for sink_input in app_sink_inputs:
+                ### If user really wants the audio levels to be independent then enable this below 
+                # min_volume = sink_input.volume.values[0]
+
+                # Calculate the adjustment relative to the minimum volume
+                if action.lower() == 'increase':
+                    new_volume = min_volume + volume
+                elif action.lower() == 'decrease':
+                    new_volume = min_volume - volume
+                elif action.lower() == 'set':
+                    new_volume = volume
+                else:
+                    g_log.info(f"Unknown volume action: {action}")
+                    return
+
+                # Ensure volume stays within valid range
+                new_volume = max(0.0, min(1.0, new_volume))
+
+                g_log.info(f"Setting volume for {app_name.capitalize()} to {new_volume * 100}%")
+                await self.pulse.volume_set_all_chans(sink_input, new_volume)
+
+        except asyncio.exceptions.InvalidStateError as e:
+            g_log.error(f"Invalid state error: {e}")
+        except Exception as e:
+            g_log.error(f"Unexpected error in _setBrowserVolume: {e}")
+
+
+    # async def _setBrowserVolume (self, app_name, volume, action):
+    #     """ When browser has multiple tabs with audio, they work independantly, so we are adjusting all of them """
+    #     try:
+    #         sink_inputs = await self.pulse.sink_input_list()
+    #         app_sink_inputs = [
+    #             si for si in sink_inputs if app_name.lower() in si.proplist.get('application.name', '').lower()
+    #         ]
+    #         if not app_sink_inputs:
+    #             g_log.info("No Brave browser audio streams found.")
+    #             return
+
+    #         for sink_input in app_sink_inputs:
+    #             current_volume = sink_input.volume.values[0]
+    #             if action.lower() == 'increase':
+    #                 new_volume = min(1.0, current_volume + volume)
+    #             elif action.lower() == 'decrease':
+    #                 new_volume = max(0.0, current_volume - volume)
+    #             elif action.lower() == 'set':
+    #                 new_volume = float(volume)
+    #             else:
+    #                 g_log.info(f"Unknown volume action: {action}")
+    #                 return
+
+    #             new_volume = max(0.0, min(1.0, new_volume))
+    #             g_log.info(f"Setting volume for Brave to {new_volume * 100}%")
+
+    #             await self.pulse.volume_set_all_chans(sink_input, new_volume)
+
+    #     except asyncio.exceptions.InvalidStateError as e:
+    #         g_log.error(f"Invalid state error: {e}")
+    #     except Exception as e:
+    #         g_log.error(f"Unexpected error in _set_app_volume: {e}")
+
+
+    # async def _set_app_volume(self, app_name, volume, action):
+    #     if not self.pulse or not self.pulse.connected:
+    #         g_log.info("PulseAudio connection not available...")
+    #         return
+        
+    #     app_info = self.apps.get(app_name.lower())
+
+    #     if not app_info:
+    #         g_log.info(f"Application '{app_name}' not found.")
+    #         return
+
+    #     if hasattr(app_info['info'], 'volume'):
+    #         current_volume = app_info['info'].volume.values[0]
+    #     else:
+    #         g_log.info(f"No volume attribute found for '{app_name}'")
+    #         return
+        
+    #     if action == 'Increase':
+    #         volume = min(1.0, current_volume + volume)
+    #     elif action == 'Decrease':
+    #         volume = max(0.0, current_volume - volume)
+    #     elif action == 'Set':
+    #         volume = float(volume)
+    #     else:
+    #         g_log.info(f"Unknown volume action: {action}")
+    #         return
+
+    #     # Ensure volume is within valid range
+    #     volume = max(0.0, min(1.0, volume))
+    #     g_log.info(f"Setting volume for {app_name} to {volume * 100}%")
+
+    #     try:
+    #         await self.pulse.volume_set_all_chans(app_info['info'], volume)
+    #     except asyncio.exceptions.InvalidStateError as e:
+    #         g_log.error(f"Invalid state error: {e}")
+    #         g_log.error(f"App: {app_name}, Volume: {volume}, Action: {action} App info: {app_info}")
+    #     except Exception as e:
+    #         g_log.error(f"Unexpected error in _set_app_volume: {e}")
+
+    #     g_log.info(f"Volume for {app_name} {action} to {volume * 100}%")
 
 
 
@@ -298,22 +418,64 @@ class AudioController(object):
         """Mute, Unmute or Toggle the specified app."""
         self.run_coroutine(self._set_app_mute, app_name, command)
     async def _set_app_mute(self, app_name, command):
-        
-        app_info = self.apps[app_name] ## Getting current object/state of the app stored locally
-        command_actions = {
-            "Mute": lambda: 1,
-            "Unmute": lambda: 0,
-            "Toggle": lambda: 0 if app_info['info'].mute else 1
-        }
-        mute = command_actions[command]()
-        
-        if app_info:
-            await self.pulse.sink_input_mute(app_info['index'], mute)
-            g_log.info(f"App Mute | Application '{app_name}' muted: {mute}")
+        if not self.pulse or not self.pulse.connected:
+            g_log.info("PulseAudio connection not available...")
+            return
+
+        if app_name.lower() in self.browserApps:
+            self._setBrowserMute(app_name, command)
         else:
-            g_log.info(f"App Mute | Application '{app_name}' not found.")
-     
+            app_info = self.apps.get(app_name.lower())
+
+            if not app_info:
+                g_log.info(f"App Mute | Application '{app_name}' not found.")
+                return
+
+            current_mute = app_info['info'].mute
+            command_actions = {
+                "mute": lambda: 1,
+                "unmute": lambda: 0,
+                "toggle": lambda: 0 if current_mute else 1
+            }
+            mute = command_actions[command.lower()]()
             
+            try:
+                await self.pulse.sink_input_mute(app_info['index'], mute)
+                g_log.info(f"App Mute | Application '{app_name}' muted: {mute}")
+            except asyncio.exceptions.InvalidStateError as e:
+                g_log.error(f"Invalid state error: {e}")
+            except Exception as e:
+                g_log.error(f"Unexpected error in _set_app_mute: {e}")
+
+    async def _setBrowserMute(self, app_name, command):
+        """ When browser has multiple tabs with audio, they work independantly, so we are adjusting all of them """
+        try:
+            sink_inputs = await self.pulse.sink_input_list()
+            app_sink_inputs = [
+                si for si in sink_inputs if app_name.lower() in si.proplist.get('application.name', '').lower()
+            ]
+            if not app_sink_inputs:
+                g_log.info(f"No {app_name} browser audio streams found.")
+                return
+
+            for sink_input in app_sink_inputs:
+                current_mute = sink_input.mute
+                command_actions = {
+                    "mute": lambda: 1,
+                    "unmute": lambda: 0,
+                    "toggle": lambda: 0 if current_mute else 1
+                }
+                mute = command_actions[command.lower()]()
+
+                await self.pulse.sink_input_mute(sink_input.index, mute)
+                g_log.info(f"App Mute | {app_name.capitalize()} instance muted: {mute}")
+
+        except asyncio.exceptions.InvalidStateError as e:
+            g_log.error(f"Invalid state error: {e}")
+        except Exception as e:
+            g_log.error(f"Unexpected error in _set_app_mute: {e}")      
+
+
 
     def set_volume(self, device_type, action, volume):
         """Set the volume of the specified device."""
