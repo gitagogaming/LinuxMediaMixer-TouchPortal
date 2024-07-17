@@ -117,7 +117,7 @@ TP_PLUGIN_ACTIONS = {
         'prefix': TP_PLUGIN_CATEGORIES['main']['name'],
         'type': "communicate",
         'tryInline': True,
-        'format': "$[2] $[1]volume to$[3]%",
+        'format': f"$[2] $[1]volume to$[3]% for $[4] ",
         "doc": "Change Default Audio Devices",
         "hasHoldFunctionality": True,
         'data': {
@@ -148,6 +148,13 @@ TP_PLUGIN_ACTIONS = {
                 'label': "Volume",
                 "default": "25"
             },
+            'deviceOption': {
+                'id': PLUGIN_ID + ".act.changeDeviceVolume.devices",
+                'type': "choice",
+                'label': "Device choice list",
+                'default': "default",
+                "valueChoices": ["default"]
+            },
         }
     },
     'setDeviceMute': {
@@ -157,7 +164,7 @@ TP_PLUGIN_ACTIONS = {
         'prefix': TP_PLUGIN_CATEGORIES['main']['name'],
         'type': "communicate",
         'tryInline': True,
-        'format': "$[3] $[1]Device",
+        'format': "$[3] $[1] $[2] Device",
         "doc": "Mute/Unmute Default Audio Devices",
         'data': {
             'deviceType': {
@@ -197,7 +204,7 @@ TP_PLUGIN_ACTIONS = {
         'prefix': TP_PLUGIN_CATEGORIES['main']['name'],
         'type': "communicate",
         'tryInline': True,
-        'format': "Change audio device$[1]$[2]$[3]",
+        'format': "Change audio device$[1]$[2]",
         "doc": "Change Default Audio Devices",
         'data': {
             'optionSel': {
@@ -271,7 +278,7 @@ TP_PLUGIN_CONNECTORS = {
     "Windows Audio": {
         "id": PLUGIN_ID + ".connector.WinAudio",
         "name": "Volume Mixer: Linux Volume Slider",
-        "format": "Control Default Audio for $[1] device",
+        "format": "Control Default Audio for $[1] device and $[2]",
         "label": "Control Linux Volume",
         "data": {
             'deviceType': {

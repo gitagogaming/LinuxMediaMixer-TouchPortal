@@ -14,6 +14,15 @@ from TPPEntry import TP_PLUGIN_SETTINGS, TP_PLUGIN_ACTIONS, TP_PLUGIN_CONNECTORS
 from tpClient import TPClient, g_log
 
 import asyncio
+
+
+## 1/16 updates
+## added option to change mute and volume on all input/output devices
+## when adjusting volume for browsers, all sources matching will also adjust 
+## fixed issue with proper data not filling out when user selects input/output in various actions.
+## added current focues app state
+## etc more.. gotta check comparisons to remember
+
 # from createTask import create_task
 #https://github.com/mk-fg/pulseaudio-mixer-cli/tree/master fairly complex thing we could get some info from..
 
@@ -110,7 +119,11 @@ def onConnect(data):
     TPClient.choiceUpdate(PLUGIN_ID + ".connector.APPcontrol.data.slidercontrol", list(apps.keys()))
     TPClient.choiceUpdate(PLUGIN_ID + ".act.ChangeAudioOutput.data.device", list(controller.output_devices.keys()))
     # TPClient.choiceUpdate(PLUGIN_ID + ".connector.WinAudio.devices", list(controller.input_devices.keys()))
+    
+    
     # TPClient.choiceUpdate(PLUGIN_ID + ".connector.WinAudio.devices", list(controller.output_devices.keys()))
+    # TPClient.choiceUpdate(PLUGIN_ID + ".act.changeDeviceMute.devices", list(controller.output_devices.keys()))
+    
     
     
     
@@ -149,7 +162,7 @@ def connectors(data):
             except Exception as e:
                 g_log.debug(f"Exception in other app volume change Error: {str(e)}")
     elif data['connectorId'] == TP_PLUGIN_CONNECTORS["Windows Audio"]["id"]:
-        controller.set_volume(data['data'][0]['value'], "Set", data['value'])
+        controller.set_volume(data['data'][0]['value'], "Set", data['value'], data['data'][1]['value'])
 
     time.sleep(0.1)
 
@@ -265,7 +278,7 @@ def onAction(data: dict):
 
     elif actionid == TP_PLUGIN_ACTIONS['setDeviceMute']['id']:
         """ setting it to default for now.. as we cant set individual devices... YET"""
-        controller.set_mute(action_data[0]['value'], "default", action_data[2]['value'])
+        controller.set_mute(action_data[0]['value'], action_data[1]['value'], action_data[2]['value'])
 
 @TPClient.on(TP.TYPES.onListChange)
 def onListChange(data):
@@ -276,21 +289,40 @@ def onListChange(data):
         try:
           pass  # updateDevice(data['value'], TP_PLUGIN_ACTIONS["setDeviceVolume"]["data"]["deviceOption"]["id"], data['instanceId'])
         except Exception as e:
-            g_log.info("Update device setDeviceVolume error " + str(e))
+            g_log.info(f"Update device setDeviceVolume error {e}")
             
     elif data['actionId'] == TP_PLUGIN_CONNECTORS["Windows Audio"]["id"] and \
         data["listId"] == (listId := TP_PLUGIN_CONNECTORS["Windows Audio"]["data"]["deviceType"]["id"]):
-            ## we dont seem to be able to set the indiviual devices.. so we will just keep it with 'default'
-            pass
-        
-        # try:
-            # if data['value'] == "Input":
-                # TPClient.choiceUpdate(PLUGIN_ID + ".connector.WinAudio.devices", list(controller.input_devices.keys()))
-            # else:
-                # TPClient.choiceUpdate(PLUGIN_ID + ".connector.WinAudio.devices", list(controller.output_devices.keys()))
-            # updateDevice(data['value'], listId, data['instanceId'])
-       # except Exception as e:
-        #    g_log.warning("Update device setDeviceVolume error " + str(e))
+            try:
+                if data['value'] == "Input":
+                    TPClient.choiceUpdate(PLUGIN_ID + ".connector.WinAudio.devices", list(controller.input_devices.keys()))
+                elif data['value'] == "Output":
+                    TPClient.choiceUpdate(PLUGIN_ID + ".connector.WinAudio.devices", list(controller.output_devices.keys()))
+                # updateDevice(data['value'], listId, data['instanceId'])
+            except Exception as e:
+               g_log.warning(f"Update device setDeviceVolume error {e}")
+               
+    elif data['actionId'] == TP_PLUGIN_ACTIONS["setDeviceMute"]["id"] and \
+        data["listId"] == (listId:= TP_PLUGIN_ACTIONS['setDeviceMute']["data"]["deviceType"]["id"]):
+            try:
+                if data['value'] == "Input":
+                    TPClient.choiceUpdate(PLUGIN_ID + ".act.changeDeviceMute.devices", list(controller.input_devices.keys()))
+                elif data['value'] == "Output":
+                    TPClient.choiceUpdate(PLUGIN_ID + ".act.changeDeviceMute.devices", list(controller.output_devices.keys()))
+            except Exception as e:
+                g_log.error(f"ChoiceUpdate for changeDeviceMute Failed {e}")
+                
+    elif data['actionId'] == TP_PLUGIN_ACTIONS["ChangeOut/Input"]["id"] and \
+        data["listId"] == (listId:= TP_PLUGIN_ACTIONS['ChangeOut/Input']["data"]["optionSel"]["id"]):
+            try:
+                if data['value'] == "Input":
+                    TPClient.choiceUpdate(PLUGIN_ID + ".act.ChangeAudioOutput.data.device", list(controller.input_devices.keys()))
+                elif data['value'] == "Output":
+                    TPClient.choiceUpdate(PLUGIN_ID + ".act.ChangeAudioOutput.data.device", list(controller.output_devices.keys()))
+            except Exception as e:
+                g_log.error(f"ChoiceUpdate for ChangeOut/Input Failed {e}")
+    
+
 
     # if data['actionId'] == TP_PLUGIN_ACTIONS["ChangeOut/Input"]['id'] and \
         # data['listId'] == TP_PLUGIN_ACTIONS["ChangeOut/Input"]["data"]["optionSel"]["id"]:

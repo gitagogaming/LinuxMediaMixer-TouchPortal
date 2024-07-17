@@ -111,15 +111,18 @@ class AudioController(object):
                 self.output_devices[device.description] = device
                 g_log.debug(f"\nOutput device found: {device.description} | Name: {device.name} | Index: {device.index} | Properties: {device.proplist}")
 
-            # print("\n")
+        ## adding "default device" to the list of choices
+        self.output_devices["default"] = "default"
 
-        # print("Fetching source (input) devices...")
         for device in await self.pulse.source_list():
             # if device.proplist.get('device.class') == 'sound':# and 'monitor' not in device.name:
                 self.input_devices[device.description] = device
                 # self.output_devices[device.description] = device
                 g_log.debug(f"\nInput device found: {device.description} | Name: {device.name} | Index: {device.index} | Properties: {device.proplist}")
-       
+        
+        ## adding "default device" to the list of choices
+        self.input_devices["default"] = "default"
+
         ## 
         ## sink_list, source_list and card_list dont seem to show anything to properly identify it for us.. although it should be there somewhere..
         # this command below allows to set the default device to the hdmi output - but not sure how to get that set up here or how to find it technically
@@ -257,6 +260,7 @@ class AudioController(object):
         if not self.pulse or not self.pulse.connected:
             g_log.info("PulseAudio connection not available...")
             return
+        
         if app_name.lower() in self.browserApps:
             await self._setBrowserVolume(app_name, volume, action)
         else:
@@ -293,6 +297,7 @@ class AudioController(object):
                 g_log.error(f"Unexpected error in _set_app_volume: {e}")
 
         g_log.info(f"Volume for {app_name} {action} to {volume * 100}%")
+
     async def _setBrowserVolume(self, app_name, volume, action):
         """
         Adjusts volume for all sink inputs of a browser.
@@ -477,17 +482,24 @@ class AudioController(object):
 
 
 
-    def set_volume(self, device_type, action, volume):
+    def set_volume(self, device_type, action, volume, source):
         """Set the volume of the specified device."""
-        self.run_coroutine(self._set_volume, device_type, action, volume)
-    async def _set_volume(self, device_type:str, action:str="set", volume:str="25"):
+        self.run_coroutine(self._set_volume, device_type, action, volume, source)
+    async def _set_volume(self, device_type:str, action:str="set", volume:str="25", source:str="default"):
         """ 
         - Currently only seems to be effective for the default device
         - Need to find a way to see results of setting the volume of a specific device if possible (OBS STUDIO? - by listening)
         """
-        device = None
         device_type = device_type.lower()
-        device = await self._current_default_device(device_type)
+        device = await self._get_device(device_type, source)
+        # if deviceName == "default":
+        #     device = await self._current_default_device(device_type)
+        # else:
+        #     if device_type == "input":
+        #         device = self.input_devices[deviceName]
+        #     elif device_type == "output":
+        #         device = self.output_devices[deviceName]
+                
         if not device:
             g_log.info(f"set_volume: ({device_type}) Device not found.")
             return
@@ -512,7 +524,7 @@ class AudioController(object):
     def set_mute(self, device_type, source, mute):
         """Mute, Unmute or Toggle the specified device."""
         self.run_coroutine(self._set_mute, device_type, source, mute)
-    async def _set_mute(self, device_type, source, command):
+    async def _set_mute(self, device_type, source, mute):
         device = await self._get_device(device_type, source)
         
         command_actions = {
@@ -520,7 +532,7 @@ class AudioController(object):
             "Unmute": lambda: 0,
             "Toggle": lambda: 0 if device.mute else 1
         }
-        mute = command_actions[command]()
+        mute = command_actions[mute]()
             
         await self.pulse.mute(device, int(mute))
     
