@@ -249,7 +249,9 @@ class AudioController(object):
             g_log.debug(f"App: {app_name.lower()} | Data: {app_info}")
             
             TPClient.createStateMany(states)
-            
+        
+        ## Adding in entry for 'current app'
+        # self.apps["Current app"] = "Current app"
         g_log.debug(f"Apps Retrieved {self.apps}")
 
 
@@ -261,6 +263,8 @@ class AudioController(object):
             g_log.info("PulseAudio connection not available...")
             return
         
+        volume = float(max(0, min(int(volume), 100))) / 100
+
         if app_name.lower() in self.browserApps:
             await self._setBrowserVolume(app_name, volume, action)
         else:
@@ -281,7 +285,7 @@ class AudioController(object):
             elif action.lower() == 'decrease':
                 volume = max(0.0, current_volume - volume)
             elif action.lower() == 'set':
-                volume = float(volume)
+                volume = volume
             else:
                 g_log.info(f"Unknown volume action: {action}")
                 return
@@ -428,7 +432,7 @@ class AudioController(object):
             return
 
         if app_name.lower() in self.browserApps:
-            self._setBrowserMute(app_name, command)
+            await self._setBrowserMute(app_name, command)
         else:
             app_info = self.apps.get(app_name.lower())
 
@@ -492,18 +496,12 @@ class AudioController(object):
         """
         device_type = device_type.lower()
         device = await self._get_device(device_type, source)
-        # if deviceName == "default":
-        #     device = await self._current_default_device(device_type)
-        # else:
-        #     if device_type == "input":
-        #         device = self.input_devices[deviceName]
-        #     elif device_type == "output":
-        #         device = self.output_devices[deviceName]
-                
+
         if not device:
             g_log.info(f"set_volume: ({device_type}) Device not found.")
             return
         
+        volume = float(max(0, min(int(volume), 100))) / 100
         current_volume = device.volume.values[0]
         
         if action == 'Increase':
@@ -511,7 +509,7 @@ class AudioController(object):
         elif action == 'Decrease':
             volume = max(0.0, current_volume - volume)
         elif action == 'Set':
-            volume = float(volume)/ 100
+            volume = volume
         else:
             g_log.info(f"Unknown volume action: {action}")
             return

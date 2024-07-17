@@ -23,6 +23,12 @@ import asyncio
 ## added current focues app state
 ## etc more.. gotta check comparisons to remember
 
+## 1/17 updates
+# fixed issue in SetDeviceVolume action where input/output choice list was not being filled out properly
+# fixed tppentry.tp duplicate key in SetDeviceVolume 
+# fixed issue where setDeviceVolume was setting device to 100% when trying to simply increase it by 5%
+# fixed issue where setBrowserMute not being properly awaited
+
 # from createTask import create_task
 #https://github.com/mk-fg/pulseaudio-mixer-cli/tree/master fairly complex thing we could get some info from..
 
@@ -153,12 +159,10 @@ def connectors(data):
             activeWindow = monitor.get_current_window()
             
             if activeWindow != "":
-                volume_value = float(max(0, min(int(data['value']), 100))) / 100
-                controller.set_app_volume(activeWindow, volume_value, "Set")
+                controller.set_app_volume(activeWindow, data['value'], "Set")
         else:
             try:
-                volume_value = float(max(0, min(int(data['value']), 100))) / 100
-                controller.set_app_volume(data['data'][0]['value'], volume_value, "Set")
+                controller.set_app_volume(data['data'][0]['value'], data['value'], "Set")
             except Exception as e:
                 g_log.debug(f"Exception in other app volume change Error: {str(e)}")
     elif data['connectorId'] == TP_PLUGIN_CONNECTORS["Windows Audio"]["id"]:
@@ -168,19 +172,6 @@ def connectors(data):
 
 
 
-
-
-
-# def initialize():
-#     controller.start()
-#     if not controller.initialization_complete.wait(timeout=10):  # Wait up to 10 seconds for initialization
-#         print("Failed to initialize PulseAudio in a timely manner.")
-#         return
-
-#     g_log.info("PulseAudio Controller initialized.")
-    
-#     pulseListener = PulseListener()
-#     pulseListener.start()
 def initializeController(initial_delay=2, max_delay=32):
     attempt = 0
     delay = initial_delay
@@ -219,16 +210,17 @@ def holdingButton(data):
     g_log.info(f"holdingButton: {data}")
     while True:
         if TPClient.isActionBeingHeld(TP_PLUGIN_ACTIONS['Inc/DecrVol']['id']):
-            volume_value = float(max(0, min(int(data['data'][2]['value']), 100))) / 100
+            # volume_value = float(max(0, min(int(data['data'][2]['value']), 100))) / 100
             g_log.debug(f"App: {data['data'][0]['value']} Action {data['data'][1]['value']}   Volume Value: {data['data'][2]['value']}")
-            controller.set_app_volume(data['data'][0]['value'], volume_value, data['data'][1]['value'])
+            controller.set_app_volume(data['data'][0]['value'], data['data'][2]['value'], data['data'][1]['value'])
 
         elif TPClient.isActionBeingHeld(TP_PLUGIN_ACTIONS['setDeviceVolume']['id']):
             device_type = data['data'][0]['value']
             action = data['data'][1]['value']
-            volume_value = float(max(0, min(int(data['data'][2]['value']), 100))) / 100
+            volume_value = data['data'][2]['value']
+            source = data['data'][3]['value']
             g_log.debug(f"Device: {data['data'][0]['value']} Action {data['data'][1]['value']}   Volume Value: {data['data'][2]['value']} ")
-            controller.set_volume(device_type, action, volume_value)   
+            controller.set_volume(device_type, action, volume_value, source)   
         else:
             break   
         time.sleep(0.1)
@@ -261,7 +253,8 @@ def onAction(data: dict):
     elif actionid == TP_PLUGIN_ACTIONS['Inc/DecrVol']['id']:
         app_name = action_data[0]['value']
         volume_action = action_data[1]['value']
-        volume_value = float(max(0, min(int(action_data[2]['value']), 100))) / 100
+        # volume_value = float(max(0, min(int(action_data[2]['value']), 100))) / 100
+        volume_value = action_data[2]['value']
 
         if app_name == "Current app":
             activeWindow = monitor.get_current_window()
@@ -271,7 +264,8 @@ def onAction(data: dict):
             controller.set_app_volume(app_name,  volume_value, volume_action)
             
     elif actionid == TP_PLUGIN_ACTIONS['setDeviceVolume']['id']:
-        controller.set_volume(action_data[0]['value'], action_data[1]['value'], int(action_data[2]['value']))
+        # volume_value = float(max(0, min(int(data['data'][2]['value']), 100))) / 100
+        controller.set_volume(action_data[0]['value'], action_data[1]['value'], data['data'][2]['value'], action_data[3]['value'])
             
     elif actionid == TP_PLUGIN_ACTIONS['ChangeOut/Input']['id']:
         controller.set_default_device(action_data[0]['value'], action_data[1]['value'])
@@ -287,7 +281,11 @@ def onListChange(data):
     if data['actionId'] == TP_PLUGIN_ACTIONS["setDeviceVolume"]["id"] and \
         data["listId"] == TP_PLUGIN_ACTIONS["setDeviceVolume"]["data"]["deviceType"]["id"]:
         try:
-          pass  # updateDevice(data['value'], TP_PLUGIN_ACTIONS["setDeviceVolume"]["data"]["deviceOption"]["id"], data['instanceId'])
+            if data['value'] == "Input":
+                TPClient.choiceUpdate(PLUGIN_ID + ".act.changeDeviceVolume.devices", list(controller.input_devices.keys()))
+            elif data['value'] == "Output":
+                TPClient.choiceUpdate(PLUGIN_ID + ".act.changeDeviceVolume.devices", list(controller.output_devices.keys()))
+         # pass  # updateDevice(data['value'], TP_PLUGIN_ACTIONS["setDeviceVolume"]["data"]["deviceOption"]["id"], data['instanceId'])
         except Exception as e:
             g_log.info(f"Update device setDeviceVolume error {e}")
             

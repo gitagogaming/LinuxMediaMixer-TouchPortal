@@ -131,7 +131,7 @@ TP_PLUGIN_ACTIONS = {
                     "Input"
                 ]
             },
-            'deviceOption': {
+            'OptionList': {
                 'id': PLUGIN_ID + ".act.changeDeviceVolume.choice",
                 'type': "choice",
                 'label': "Device choice list",
