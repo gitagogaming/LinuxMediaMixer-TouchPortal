@@ -3,7 +3,6 @@ charset-normalizer==3.3.2
 ewmh==0.1.6
 idna==3.7
 pulsectl==24.4.0
-pulsectl-asyncio==1.2.0
 pyee==11.1.0
 python-xlib==0.33
 requests==2.32.3
@@ -12,3 +11,4 @@ touchportal-api==1.7.10
 typing_extensions==4.12.2
 urllib3==2.2.2
 pulsectl-asyncio==1.2.0
+colorama==0.4.6
