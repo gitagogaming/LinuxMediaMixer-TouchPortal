@@ -5,7 +5,7 @@ import pulsectl_asyncio
 
 from tpClient import TPClient, g_log
 from TPPEntry import  PLUGIN_ID, __version__
-
+from findIcon import find_icon_path
 
 class AudioController(object):
     def __init__(self) -> None:
@@ -230,7 +230,10 @@ class AudioController(object):
                 'volume': round(info.volume.values[0])
             }
             self.apps[app_name.lower()] = app_info
-
+            
+            # print("ON STARTTUP APP ICON", input.proplist)
+            app_icon = find_icon_path(input.proplist)
+                
             states = [
                 {   
                     "id": PLUGIN_ID + f".createState.{app_name.lower()}.muteState",
@@ -243,6 +246,12 @@ class AudioController(object):
                     "desc": f"{app_name.lower()} Volume",
                     "parentGroup": "Audio process state",
                     "value": str(round(info.volume.values[0]*100))
+                },
+                {
+                    "id": PLUGIN_ID + f".createState.{app_name.lower()}.icon",
+                    "desc": f"{app_name.lower()} Icon",
+                    "parentGroup": "Audio process state",
+                    "value": app_icon if app_icon != None else ""
                 }
             ]
             
@@ -449,7 +458,7 @@ class AudioController(object):
             mute = command_actions[command.lower()]()
             
             try:
-                await self.pulse.sink_input_mute(app_info['index'], mute)
+                await self.pulse.sink_input_mute(app_info['info'].index, mute)
                 g_log.info(f"App Mute | Application '{app_name}' muted: {mute}")
             except asyncio.exceptions.InvalidStateError as e:
                 g_log.error(f"Invalid state error: {e}")

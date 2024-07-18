@@ -15,6 +15,8 @@ from tpClient import TPClient, g_log
 
 import asyncio
 
+### input/output slidrs are not updating when changing externally.. believe they use to but now we added in a new thingy...
+
 
 ## 1/16 updates
 ## added option to change mute and volume on all input/output devices
@@ -28,11 +30,13 @@ import asyncio
 # fixed tppentry.tp duplicate key in SetDeviceVolume 
 # fixed issue where setDeviceVolume was setting device to 100% when trying to simply increase it by 5%
 # fixed issue where setBrowserMute not being properly awaited
+####
+# fixed issue when closing an certain applications like strawberry or discord and reopening it, mute would no longer work.
 
 # from createTask import create_task
 #https://github.com/mk-fg/pulseaudio-mixer-cli/tree/master fairly complex thing we could get some info from..
 
-# from concurrent.futures import ThreadPoolExecutor
+# from concurrent.futures import ThreadPoolExecutor 
 
 ####### COMPLETED THINGS
 ## App Mute (toggle/on/off) - Bi-directional
