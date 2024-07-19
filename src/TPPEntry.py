@@ -7,7 +7,7 @@ GITHUB_USER_NAME = "GitagoGaming"
 GITHUB_PLUGIN_NAME = "LinuxMediaMixer-TouchPortal-Plugin"  ## Name of Github Repo
 PLUGIN_RELEASE_INFO = {} # This will be updated by the update_check.py script
 
-__version__ = 103
+__version__ = 104
 
 TP_PLUGIN_INFO = {
     "sdk": 6,
