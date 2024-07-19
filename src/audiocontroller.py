@@ -2,10 +2,12 @@
 import threading 
 import asyncio
 import pulsectl_asyncio
+import concurrent.futures
 
 from tpClient import TPClient, g_log
 from TPPEntry import  PLUGIN_ID, __version__
 from findIcon import find_icon_path
+
 
 class AudioController(object):
     def __init__(self) -> None:
@@ -13,13 +15,29 @@ class AudioController(object):
         self.loop = None
         self.thread = None
         self.initialization_complete = threading.Event()
-
+        
+        self.defaultDevices = { 'input': {},'output':{} }
         self.output_devices = {}
         self.input_devices = {}
         self.cards = {}
         self.apps = {}
 
         self.browserApps = []
+        
+    async def periodic_device_check(self):
+        """
+        Periodically check and update the default devices every 45 seconds
+        """
+        while True:
+            await self._get_current_default_devices()
+            await asyncio.sleep(45)
+
+    def start_periodic_check(self):
+        """
+        Start the periodic device check
+        """
+        asyncio.create_task(self.periodic_device_check())
+        
         
     def _run_event_loop(self):
         self.loop = asyncio.new_event_loop()
@@ -44,20 +62,32 @@ class AudioController(object):
 
     def stop(self):
         """
-          Call Stop on shutdown 
+        Call Stop on shutdown 
         """
         if self.loop and not self.loop.is_closed():
-            self.loop.call_soon_threadsafe(self._cleanup)
+            future = asyncio.run_coroutine_threadsafe(self._async_cleanup(), self.loop)
+            try:
+                future.result(timeout=5)  # Wait for up to 5 seconds
+            except concurrent.futures._base.TimeoutError:
+                pass
+            except Exception as e:
+                g_log.error(f"Error during cleanup: {e}")
+
         if self.thread:
-            self.thread.join()
-
-    def _cleanup(self):
-        asyncio.create_task(self._async_cleanup())
-
+            self.thread.join(timeout=5)
+            if self.thread.is_alive():
+                g_log.error("Thread did not finish in time")
+                
     async def _async_cleanup(self):
-        if self.pulse:
-            await self.pulse.disconnect()
-        self.loop.stop()
+        try:
+            if self.pulse:
+                self.pulse.disconnect()
+                g_log.info("Controller disconnected successfully")
+        except Exception as e:
+            g_log.error(f"Error during pulse disconnect: {e}")
+        finally:
+            if self.loop and not self.loop.is_closed():
+                self.loop.stop()
 
     def run_coroutine(self, coro_func, *args):
         if self.loop.is_closed():
@@ -77,6 +107,7 @@ class AudioController(object):
             await self.pulse.connect()
             await self.get_devices()
             await self.get_app_inputs()
+            self.start_periodic_check()
         except Exception as e:
             g_log.error(f"Unexpected error during PulseAudio initialization: {e}")
             
@@ -180,9 +211,9 @@ class AudioController(object):
             """
         device_type = device_type.lower()
         if device_type == "output":
-            device = self.output_devices.get(source) if source != "default" else await self._current_default_device(device_type)
+            device = self.output_devices.get(source) if source != "default" else self.defaultDevices[device_type]
         elif device_type == "input":
-            device = self.input_devices.get(source) if source != "default" else await self._current_default_device(device_type)
+            device = self.input_devices.get(source) if source != "default" else self.defaultDevices[device_type]
         else:
             g_log.info(f"Invalid device type: {device_type}")
             return None
@@ -194,17 +225,19 @@ class AudioController(object):
         g_log.debug(f"Device found: {device}")
         return device
 
-    async def _current_default_device(self, atype):
+    def get_current_default_devices(self):
+        self.run_coroutine(self._get_current_default_devices)
+    async def _get_current_default_devices(self):
         """
         Get the current default device for the specified type (input or output)
         """
-        if atype == "output":
-            device = await self.pulse.get_sink_by_name('@DEFAULT_SINK@')
-        if atype == "input":
-            device = await self.pulse.get_source_by_name('@DEFAULT_SOURCE@')
+        self.defaultDevices['output'] = await self.pulse.get_sink_by_name('@DEFAULT_SINK@')
+        self.defaultDevices['input'] = await self.pulse.get_source_by_name('@DEFAULT_SOURCE@')
+        
+        TPClient.stateUpdate(PLUGIN_ID + ".state.CurrentInputDevice", self.defaultDevices['input'].description)
+        TPClient.stateUpdate(PLUGIN_ID + ".state.CurrentOutputDevice", self.defaultDevices['output'].description)
 
-        g_log.debug(f"Current default {atype} device: {device}")
-        return device
+        g_log.debug(f"Default Devices Retrieved {self.defaultDevices}")
     
 
     async def get_app_inputs(self):
@@ -272,15 +305,16 @@ class AudioController(object):
             g_log.info("PulseAudio connection not available...")
             return
         
+        app_info = None
         volume = float(max(0, min(int(volume), 100))) / 100
-
+            
         if app_name.lower() in self.browserApps:
             await self._setBrowserVolume(app_name, volume, action)
         else:
             app_info = self.apps.get(app_name.lower())
 
             if not app_info:
-                g_log.info(f"Application '{app_name}' not found.")
+                g_log.debug(f"Application '{app_name}' not found. {self.apps}")
                 return
 
             if hasattr(app_info['info'], 'volume'):
@@ -550,11 +584,14 @@ class AudioController(object):
         self.run_coroutine(self._set_default_device, device_type, source)
     async def _set_default_device(self, device_type, source):
         device = await self._get_device(device_type, source)
+        
+        self.defaultDevices[device_type][device.description] = device
+        
         await self.pulse.default_set(device)
 
     
 
-controller = AudioController()
+# controller = AudioController()
 
 
 
@@ -573,9 +610,9 @@ controller = AudioController()
 
     # def increase_volume(self, device_type, source, volume):
     #     if device_type == "output":
-    #         device = self.output_devices.get(source) if source != "default" else self._current_default_device(device_type)
+    #         device = self.output_devices.get(source) if source != "default" else self._get_current_default_device(device_type)
     #     elif device_type == "input":
-    #         device = self.input_devices.get(source) if source != "default" else self._current_default_device(device_type)
+    #         device = self.input_devices.get(source) if source != "default" else self._get_current_default_device(device_type)
         
     #     if not device:
     #         g_log.info(f"Device with description '{source}' not found.")
@@ -587,9 +624,9 @@ controller = AudioController()
 
     # def decrease_volume(self, device_type, source, volume):    
     #     if device_type == "output":
-    #         device = self.output_devices.get(source) if source != "default" else self._current_default_device(device_type)
+    #         device = self.output_devices.get(source) if source != "default" else self._get_current_default_device(device_type)
     #     elif device_type == "input":
-    #         device = self.input_devices.get(source) if source != "default" else self._current_default_device(device_type)
+    #         device = self.input_devices.get(source) if source != "default" else self._get_current_default_device(device_type)
         
     #     if not device:
     #         g_log.info(f"Device with description '{source}' not found.")

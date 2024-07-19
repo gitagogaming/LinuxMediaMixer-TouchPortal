@@ -6,10 +6,7 @@ import traceback
 import TouchPortalAPI as TP, logging
 from TPPEntry import  PLUGIN_ID, __version__
 
-from colorama import Fore, Back, Style, init
 
-# Initialize colorama
-init(autoreset=True)
 
 try:
     TPClient = TP.Client(
@@ -24,19 +21,22 @@ except Exception as e:
     sys.exit(f"Could not create TP Client, exiting. Error was:\n{repr(e)}")
 
 
+
+import logging
+import traceback
+
 class gLog:
     def __init__(self, plugin_id):
-        self.logger = logging.getLogger(plugin_id)
-        self.logger.setLevel(logging.DEBUG)  # Set the default logging level
-        
+        self.logger = logging.getLogger(plugin_id)      
         self.logger.handlers.clear()
         
         # Create console handler and set level to debug
-        ch = logging.StreamHandler()
-        
+        ch = logging.StreamHandler(sys.stdout)
+        # ch = logging.StreamHandler()
+
         # Create formatter
-        formatter = ColoredFormatter('%(asctime)s.%(msecs)03d [%(levelname)s][%(filename)s:%(lineno)d] %(message)s - %(funcName)s',
-                              datefmt='%b%d %H:%M:%S')
+        formatter = logging.Formatter('%(asctime)s.%(msecs)03d [%(levelname)s][%(filename)s:%(lineno)d](%(funcName)s) %(message)s',
+                                      datefmt='%b%d %H:%M:%S')
         ch.setFormatter(formatter)
         
         # Add ch to logger
@@ -45,7 +45,7 @@ class gLog:
         # Prevent propagation to parent loggers
         self.logger.propagate = False
 
-        
+
     def info(self, message):
         self.logger.info(message, stacklevel=2)
     
@@ -69,69 +69,5 @@ class gLog:
         if exc_traceback:
             self.logger.critical("Traceback: %s", traceback.format_exc(), stacklevel=2)
 
-
-class ColoredFormatter(logging.Formatter):
-    COLORS = {
-        'DEBUG': Fore.CYAN,
-        'INFO': Fore.GREEN,
-        'WARNING': Fore.YELLOW,
-        'ERROR': Fore.RED,
-        'CRITICAL': Fore.RED + Back.WHITE
-    }
-
-    def format(self, record):
-        levelname = record.levelname
-        if levelname in self.COLORS:
-            levelname_color = self.COLORS[levelname] + levelname + Style.RESET_ALL
-            record.levelname = levelname_color
-        return super().format(record)
-
-
-# Initialize g_log
 g_log = gLog(PLUGIN_ID)
 
-
-
-
-
-
-
-
-
-
-
-
-# class gLog:
-#     def __init__(self, plugin_id):
-#         self.logger = logging.getLogger(plugin_id)
-        
-#     def info(self, message):
-#         self.logger.info(message)
-    
-#     def debug(self, message):
-#         self.logger.debug(message)
-    
-#     def warning(self, message):
-#         self.logger.warning(message)
-    
-#     # def error(self, message):
-#     #     self.logger.error(message)
-    
-#     # def critical(self, message):
-#     #     self.logger.critical(message)
-#     def error(self, message):
-#         self.logger.error(message)
-#         # Capture and log the traceback information
-#         exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-#         if exc_traceback:
-#             self.logger.error("Traceback: %s", traceback.format_exc())
-
-#     def critical(self, message):
-#         self.logger.critical(message)
-#         # Capture and log the traceback information
-#         exc_type, exc_value, exc_traceback = traceback.sys.exc_info()
-#         if exc_traceback:
-#             self.logger.critical("Traceback: %s", traceback.format_exc())
-
-
-# g_log = gLog(PLUGIN_ID)

@@ -1,51 +1,19 @@
 ####  requirements - ewmh, touchportal-api, pulsectl
-import TouchPortalAPI as TP
-
-from windowmonitor import monitor
-from audiocontroller import controller
-from eventListener import PulseListener
 
 from argparse import ArgumentParser
+import asyncio
 import sys
 import time
 
+import TouchPortalAPI as TP
+from windowmonitor import WindowMonitor
+from audiocontroller import AudioController
+from eventListener import PulseListener
 from TPPEntry import TP_PLUGIN_SETTINGS, TP_PLUGIN_ACTIONS, TP_PLUGIN_CONNECTORS, PLUGIN_ID, TP_PLUGIN_INFO, PLUGIN_NAME, PLUGIN_RELEASE_INFO, __version__
-# from update_check import plugin_update_check, download_update
 from tpClient import TPClient, g_log
-
-import asyncio
+# from update_check import plugin_update_check, download_update
 
 ### input/output slidrs are not updating when changing externally.. believe they use to but now we added in a new thingy...
-
-
-## 1/16 updates
-## added option to change mute and volume on all input/output devices
-## when adjusting volume for browsers, all sources matching will also adjust 
-## fixed issue with proper data not filling out when user selects input/output in various actions.
-## added current focues app state
-## etc more.. gotta check comparisons to remember
-
-## 1/17 updates
-# fixed issue in SetDeviceVolume action where input/output choice list was not being filled out properly
-# fixed tppentry.tp duplicate key in SetDeviceVolume 
-# fixed issue where setDeviceVolume was setting device to 100% when trying to simply increase it by 5%
-# fixed issue where setBrowserMute not being properly awaited
-####
-# fixed issue when closing an certain applications like strawberry or discord and reopening it, mute would no longer work.
-
-# from createTask import create_task
-#https://github.com/mk-fg/pulseaudio-mixer-cli/tree/master fairly complex thing we could get some info from..
-
-# from concurrent.futures import ThreadPoolExecutor 
-
-####### COMPLETED THINGS
-## App Mute (toggle/on/off) - Bi-directional
-## App Volume (set/increase/decrease, with onhold and slider actions) - Bi-directional
-## Set Default Input/Output volume (set.increase/decrease, with onhold and slider actions) - Bi-directional
-## 
-
-
-# loop = asyncio.new_event_loop()
 
 def handleSettings(settings, on_connect=False):
     settings = { list(settings[i])[0] : list(settings[i].values())[0] for i in range(len(settings)) }
@@ -123,6 +91,11 @@ def onConnect(data):
     
     apps = controller.get_app_list()
     # g_log.debug(f"on Connect Apps{apps.keys()}")
+    
+    # controller.get_current_default_devices()
+    # controller.start_periodic_check()
+    # print("THE INPUT", controller.defaultDevices['input'].description)
+
 
     TPClient.choiceUpdate(PLUGIN_ID + ".act.Mute/Unmute.data.process", list(apps.keys()))
     TPClient.choiceUpdate(PLUGIN_ID + ".act.Inc/DecrVol.data.process", list(apps.keys()))
@@ -138,14 +111,11 @@ def onConnect(data):
     
     
     
-    
-
 #--- Settings handler ---#
 @TPClient.on(TP.TYPES.onSettingUpdate)
 def onSettingUpdate(data):
     g_log.info(f"Settings: {data}")
     handleSettings(data['values'])
-
 
 
 
@@ -162,8 +132,14 @@ def connectors(data):
         elif data['data'][0]['value'] == "Current app":
             activeWindow = monitor.get_current_window()
             
+            # print("This is the active window by the way...", activeWindow['app_name'])
+            
             if activeWindow != "":
-                controller.set_app_volume(activeWindow, data['value'], "Set")
+                try:
+                    controller.set_app_volume(activeWindow['app_name'], data['value'], "Set")
+                except Exception as e:
+                    g_log.error(e)
+                    pass
         else:
             try:
                 controller.set_app_volume(data['data'][0]['value'], data['value'], "Set")
@@ -188,9 +164,8 @@ def initializeController(initial_delay=2, max_delay=32):
 
         if controller.initialization_complete.wait(timeout=10):
             g_log.info("PulseAudio Controller initialized.")
-            pulseListener = PulseListener()
             pulseListener.start()
-            return  # Exit the function if initialization is successful
+            return 
 
         g_log.info(f"Initialization attempt {attempt} failed. Retrying in {delay} seconds...")
         controller.stop()  # Clean up before retrying
@@ -207,28 +182,21 @@ def initializeController(initial_delay=2, max_delay=32):
 
 
 
-
 #--- On Hold handler ---#
 @TPClient.on(TP.TYPES.onHold_down)
 def holdingButton(data):
     g_log.info(f"holdingButton: {data}")
     while True:
         if TPClient.isActionBeingHeld(TP_PLUGIN_ACTIONS['Inc/DecrVol']['id']):
-            # volume_value = float(max(0, min(int(data['data'][2]['value']), 100))) / 100
             g_log.debug(f"App: {data['data'][0]['value']} Action {data['data'][1]['value']}   Volume Value: {data['data'][2]['value']}")
             controller.set_app_volume(data['data'][0]['value'], data['data'][2]['value'], data['data'][1]['value'])
 
         elif TPClient.isActionBeingHeld(TP_PLUGIN_ACTIONS['setDeviceVolume']['id']):
-            device_type = data['data'][0]['value']
-            action = data['data'][1]['value']
-            volume_value = data['data'][2]['value']
-            source = data['data'][3]['value']
             g_log.debug(f"Device: {data['data'][0]['value']} Action {data['data'][1]['value']}   Volume Value: {data['data'][2]['value']} ")
-            controller.set_volume(device_type, action, volume_value, source)   
+            controller.set_volume(data['data'][0]['value'], data['data'][1]['value'], data['data'][2]['value'], data['data'][3]['value'])   
         else:
             break   
         time.sleep(0.1)
-
 
 
 
@@ -255,28 +223,25 @@ def onAction(data: dict):
                 controller.set_app_mute(action_data[0]['value'], muteChoice)
 
     elif actionid == TP_PLUGIN_ACTIONS['Inc/DecrVol']['id']:
-        app_name = action_data[0]['value']
-        volume_action = action_data[1]['value']
-        # volume_value = float(max(0, min(int(action_data[2]['value']), 100))) / 100
-        volume_value = action_data[2]['value']
-
-        if app_name == "Current app":
+        if action_data[0]['value'] == "Current app":
             activeWindow = monitor.get_current_window()
             if activeWindow != "":
-                controller.set_app_volume(activeWindow, volume_value, volume_action)
+                controller.set_app_volume(activeWindow, action_data[1]['value'], action_data[1]['value'])
         else:
-            controller.set_app_volume(app_name,  volume_value, volume_action)
+            controller.set_app_volume(action_data[0]['value'],  action_data[1]['value'], action_data[1]['value'])
             
     elif actionid == TP_PLUGIN_ACTIONS['setDeviceVolume']['id']:
-        # volume_value = float(max(0, min(int(data['data'][2]['value']), 100))) / 100
         controller.set_volume(action_data[0]['value'], action_data[1]['value'], data['data'][2]['value'], action_data[3]['value'])
             
     elif actionid == TP_PLUGIN_ACTIONS['ChangeOut/Input']['id']:
         controller.set_default_device(action_data[0]['value'], action_data[1]['value'])
 
     elif actionid == TP_PLUGIN_ACTIONS['setDeviceMute']['id']:
-        """ setting it to default for now.. as we cant set individual devices... YET"""
         controller.set_mute(action_data[0]['value'], action_data[1]['value'], action_data[2]['value'])
+
+
+
+
 
 @TPClient.on(TP.TYPES.onListChange)
 def onListChange(data):
@@ -352,9 +317,10 @@ def onListChange(data):
 @TPClient.on(TP.TYPES.onShutdown)
 def onShutdown(data:dict):
     g_log.info('Received shutdown event from TP Client.')
-    controller.stop()
+    
     monitor.stop()
-    TPClient.disconnect()
+    pulseListener.stop()
+    controller.stop()
 
 
 
@@ -428,6 +394,9 @@ async def main():
 
 
 if __name__ == "__main__":
+    controller = AudioController()
+    monitor = WindowMonitor(controller)
+    pulseListener = PulseListener(controller)
     asyncio.run(main())
     
     

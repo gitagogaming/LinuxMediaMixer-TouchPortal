@@ -241,19 +241,33 @@ TP_PLUGIN_ACTIONS = {
 }
 
 TP_PLUGIN_STATES = {
-    # "shop_timestamp": {
-    #     "id": PLUGIN_ID + ".shop.timestamp",
-    #     "type": "text",
-    #     "desc": "Timestamp of the Shop Order",
-    #     "default": "",
-    #     "category": "shop"
-    # }
+    'outputDevice': {
+        'category': "main",
+        'id': PLUGIN_ID + ".state.CurrentOutputDevice",
+        'type': "text",
+        'desc': "Audio Device: Get default Output devices",
+        'default': ""
+    },
+    'inputDevice': {
+        'category': "main",
+        'id': PLUGIN_ID + ".state.CurrentInputDevice",
+        'type': "text",
+        'desc': "Audio Device: Get default input device",
+        'default': ""
+    },
     'FocusedAPP': {
         'category': "main",
         'id': PLUGIN_ID + ".state.currentFocusedAPP",
         'type': "text",
         'desc': "Volume Mixer: current focused app",
         'default': ""
+    },
+    'currentAppVolume': {
+        'category': "main",
+        'id': PLUGIN_ID + ".state.currentAppVolume",
+        'type': "text",
+        "desc": "Volume Mixer: focused app volume",
+        "default": ""
     },
 }
 
